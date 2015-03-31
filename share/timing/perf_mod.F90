@@ -11,6 +11,19 @@ module perf_mod
 ! 
 !-----------------------------------------------------------------------
 
+! JGF ALERT - The following commit could not be merged because the files
+! share/timing/gptl.c and share/timing/private.h no longer exist
+!
+!  Author: Patrick Worley <worleyph@ornl.gov>
+!  Date:   Tue Aug 5 23:24:40 2014 -0400
+!
+!  Modifying the timing library so that it will not conflict with VampirTrace [from B. Jamroz]
+!
+!  The underlying GPTL profiling layer supports autoinstrumentation.
+!  This capability conflicts with VampirTrace. Since we do not use the
+!      GPTL autoinstrumentation capability, is has been ifdef'ed out.
+
+
 !-----------------------------------------------------------------------
 !- Uses ----------------------------------------------------------------
 !-----------------------------------------------------------------------
@@ -638,16 +651,13 @@ contains
 !
 !-----------------------------------------------------------------------
 !
-   if ((timing_initialized) .and. &
-       (timing_disable_depth .eq. 0) .and. &
-       (cur_timing_detail .le. timing_detail_limit)) then
+   if (.not. timing_initialized) return
+   if (timing_disable_depth > 0) return
 
-      if ( present (handle) ) then
-         ierr = GPTLstart_handle(event, handle)
-      else
-         ierr = GPTLstart(event)
-      endif
-
+   if ( present (handle) ) then
+      ierr = GPTLstart_handle(event, handle)
+   else
+      ierr = GPTLstart(event)
    endif
 
    return
@@ -676,16 +686,13 @@ contains
 !
 !-----------------------------------------------------------------------
 !
-   if ((timing_initialized) .and. &
-       (timing_disable_depth .eq. 0) .and. &
-       (cur_timing_detail .le. timing_detail_limit)) then
+   if (.not. timing_initialized) return
+   if (timing_disable_depth > 0) return
 
-      if ( present (handle) ) then
-         ierr = GPTLstop_handle(event, handle)
-      else
-         ierr = GPTLstop(event)
-      endif
-
+   if ( present (handle) ) then
+      ierr = GPTLstop_handle(event, handle)
+   else
+      ierr = GPTLstop(event)
    endif
 
    return
@@ -789,6 +796,16 @@ contains
 #if ( defined _OPENMP )
    if (omp_in_parallel()) return
 #endif
+
+!  using disable/enable to implement timing_detail logic so also control
+!  direct GPTL calls (such as occur in Trilinos library)
+   if     ((cur_timing_detail <= timing_detail_limit) .and. &
+           (cur_timing_detail + detail_adjustment > timing_detail_limit)) then
+      call t_disablef()
+   elseif ((cur_timing_detail > timing_detail_limit) .and. &
+           (cur_timing_detail + detail_adjustment <= timing_detail_limit)) then
+      call t_enablef()
+   endif
 
    cur_timing_detail = cur_timing_detail + detail_adjustment
 

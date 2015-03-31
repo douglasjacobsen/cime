@@ -57,8 +57,8 @@ echo "" >>& $TESTSTATUS_LOG
 
 #--- set apt case name, remember main case name and exeroot
 set CASER0 = ${CASEROOT}
-set CASERR = ${CASEROOT}.apt
-set EXEROOT0 = ${EXEROOT}
+set CASERR = ${CASEROOT}/${CASE}.apt
+set EXEROOT0 = $EXEROOT
 
 #======================================================================
 # clone the case and running there
@@ -67,7 +67,7 @@ set EXEROOT0 = ${EXEROOT}
 echo "doing an autopromotion case" >>& $TESTSTATUS_LOG 
 
 #--- clone the main case to create apt case
-cd $CIMEROOT/scripts
+cd $CCSMROOT/cime/scripts
 ./create_clone -case ${CASERR} -clone ${CASER0} 
 
 #======================================================================

@@ -35,18 +35,18 @@ my $ProgDir = $1;                      # name of directory containing this scrip
                                        # relative or absolute path, or null if the script is in
                                        # the user's PATH
 
-my $cimeroot = absolute_path($ENV{cimeroot});
+my $ccsmroot = absolute_path($ENV{CCSMROOT});
 
-(-d "$cimeroot")  or  die <<"EOF";
-** Cannot find cimeroot directory \"$cimeroot\"  Set using environment variable CIMEROOT **
+(-d "$ccsmroot")  or  die <<"EOF";
+** Cannot find ccsmroot directory \"$ccsmroot\"  Set using environment variable CCSMROOT **
 EOF
+my $cfgdir = "$ccsmroot/scripts";
 
 #-----------------------------------------------------------------------------------------------
 if ($#ARGV == -1) {
     usage();
 }
-my $scriptdir = "$cimeroot/scripts";
-my $machdir   = "$cimeroot/machines";
+my $machdir="$cfgdir/ccsm_utils/Machines";
 
 #-----------------------------------------------------------------------------------------------
 
@@ -161,9 +161,9 @@ if (!$opts{'list'}) {
 }
 # Check for the configuration definition file.
 my $config_def_file = "config_definition.xml";
-(-f "$scriptdir/Tools/$config_def_file")  or  die <<"EOF";
+(-f "$cfgdir/ccsm_utils/Case.template/$config_def_file")  or  die <<"EOF";
 ** Cannot find configuration definition file \"$config_def_file\" in directory 
-    \"$scriptsroot/Tools/$config_def_file\" **
+    \"$cfgdir/ccsm_utils/Case.template/$config_def_file\" **
 EOF
 
 
@@ -216,14 +216,23 @@ my $compiler_file = 'config_compilers.xml';
     \"$machdir\" **
 EOF
 
-if ($print>=2) { print "Setting configuration directory to $scriptdir$eol"; }
+# The XML::Lite module is required to parse the XML configuration files.
+(-f "$cfgdir/ccsm_utils/Tools/perl5lib/XML/Lite.pm")  or  die <<"EOF";
+** Cannot find perl module \"XML/Lite.pm\" in directory 
+    \"$cfgdir/ccsm_utils/Tools/perl5lib\" **
+EOF
+
+if ($print>=2) { print "Setting configuration directory to $cfgdir$eol"; }
+
 
 #-----------------------------------------------------------------------------------------------
-my @dirs = ( "$scriptdir/Tools" )
-
+# Add $cfgdir/perl5lib to the list of paths that Perl searches for modules
+my @dirs = (  $cfgdir, "$cfgdir/ccsm_utils/Case.template", "$cfgdir/ccsm_utils/Tools/perl5lib", "$cfgdir/ccsm_utils/Tools");
 unshift @INC, @dirs;
+require XML::Lite;
 require ConfigCase;
 require SetupTools;
+
 
 #-----------------------------------------------------------------------------------------------
 # If just listing valid values then exit after completion of lists
@@ -236,7 +245,7 @@ if ($opts{'list'}) {
 
 #-----------------------------------------------------------------------------------------------
 # Create new config object if not just listing valid values
-my $cfg_ref = ConfigCase->new("$scriptdir/Tools/$config_def_file"); 
+my $cfg_ref = ConfigCase->new("$cfgdir/ccsm_utils/Case.template/$config_def_file"); 
 
 #if ($print>=2) { print "A new config reference object was created$eol";}
 
@@ -313,13 +322,15 @@ if ($mpilib) {
 if ($print>=2) { print "Machine specifier: $mach.$eol"; }
 
 my $repotag;
-if (-f "$cimeroot/ChangeLog") { 
-    $repotag =`cat $imemroot/ChangeLog | grep 'Tag name:' | head -1`;
+if (-f "$ccsmroot/ChangeLog") { 
+    $repotag =`cat $ccsmroot/ChangeLog | grep 'Tag name:' | head -1`;
+} else {
+    $repotag =`cat $ccsmroot/models/atm/cam/doc/ChangeLog | grep 'Tag name:' | head -1`;
 }
 my @repotag = split(/ /,$repotag); 
 $repotag = $repotag[2]; 
 chomp($repotag);
-$cfg_ref->set('CIME_REPOTAG', $repotag);
+$cfg_ref->set('CCSM_REPOTAG', $repotag);
 
 SetupTools::set_compiler($cfg_ref->get('OS'),"$machdir/$compiler_file",$compiler, $mach, $mpilib, $print, "$output_dir/Macros");
 my $sysmod;
@@ -332,6 +343,10 @@ if(-e "$machdir/env_mach_specific.$mach" ) {
 system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 
 # Copy Depends files if they exist
+if( -e "$machdir/Depends.$mach.$compiler" ) {
+  $sysmod = "cp $machdir/Depends.$mach.$compiler $output_dir/";
+  system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+}else{
 if( -e "$machdir/Depends.$mach" ) {
   $sysmod = "cp $machdir/Depends.$mach $output_dir/";
   system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
@@ -339,6 +354,7 @@ if( -e "$machdir/Depends.$mach" ) {
 if( -e "$machdir/Depends.$compiler" ) {
   $sysmod = "cp $machdir/Depends.$compiler $output_dir/";
   system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+}
 }
 
 # Finally include a csh wrapper to load the modules and run the make

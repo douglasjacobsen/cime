@@ -108,28 +108,25 @@ ifeq ($(compile_threaded), true)
 endif
 
 include $(CASEROOT)/Macros
+
 # Decide whether to use a C++ or Fortran linker, based on whether we
 # are using any C++ code and the compiler-dependent CXX_LINKER variable
 ifeq ($(USE_CXX), true)
   # The following is essentially an "if... elseif... else", but gmake
   # 3.80 and earlier doesn't support elseif
+  LD = UNSET
   ifeq ($(CXX_LINKER), CXX)
-    LD := $(MPICXX)
+    LD = $(MPICXX)
   endif
   ifeq ($(CXX_LINKER), FORTRAN)
-    LD := $(MPIFC)
+    LD = $(MPIFC)
   endif
-endif
-# Use this if LD has not already been defined.   
-ifeq ($(origin LD), default)
-  ifeq ($(strip $(MPILIB)),mpi-serial)	
-    LD := $(SFC)
-  else
-    LD := $(MPIFC)
+  ifeq ($(LD), UNSET)
+    $(error Unrecognized value of CXX_LINKER: $(CXX_LINKER): should be CXX or FORTRAN)
   endif
+else
+  LD = $(MPIFC)
 endif
-
-
 
 ifeq ($(USE_CXX), true)
   ifeq ($(SUPPORTS_CXX), FALSE)
@@ -138,17 +135,15 @@ ifeq ($(USE_CXX), true)
 endif
 
 # Not clear how to escape commas for libraries with their own configure
-# script, and they don't need this defined anyway, so leave this out of
-# FPPDEFS.
-ifeq ($(HAS_F2008_CONTIGUOUS),TRUE)
-  CONTIGUOUS_FLAG := -DUSE_CONTIGUOUS=contiguous,
-else
-  CONTIGUOUS_FLAG := -DUSE_CONTIGUOUS=
+# script, and they don't need this defined anyway.
+ifneq ($(MODEL),mct)
+ifneq ($(MODEL),pio)
+  ifeq ($(HAS_F2008_CONTIGUOUS),TRUE)
+    CPPDEFS += -DUSE_CONTIGUOUS=contiguous,
+  else
+    CPPDEFS += -DUSE_CONTIGUOUS=
+  endif
 endif
-
-ifdef CPRE
-  CONTIGUOUS_FLAG := $(subst $(comma),\\$(comma),$(CONTIGUOUS_FLAG))
-  CONTIGUOUS_FLAG := $(patsubst -D%,$(CPRE)%,$(CONTIGUOUS_FLAG))
 endif
 
 ifndef AR
@@ -277,7 +272,7 @@ ifdef INC_TRILINOS
 endif
 
 ifeq ($(MODEL),driver)
-  INCLDIR += -I$(EXEROOT)/atm/obj -I$(EXEROOT)/ice/obj -I$(EXEROOT)/ocn/obj -I$(EXEROOT)/glc/obj -I$(EXEROOT)/rof/obj -I$(EXEROOT)/wav/obj
+  INCLDIR += -I$(EXEROOT)/atm/obj -I$(EXEROOT)/lnd/obj -I$(EXEROOT)/ice/obj -I$(EXEROOT)/ocn/obj -I$(EXEROOT)/glc/obj -I$(EXEROOT)/rof/obj -I$(EXEROOT)/wav/obj
 # nagfor and gcc have incompatible LDFLAGS.
 # nagfor requires the weird "-Wl,-Wl,," syntax.
 # If done in config_compilers.xml, we break MCT.
@@ -301,10 +296,6 @@ else
   endif
 endif
 
-ifeq ($(COMP_OCN), pop)
-  INCLDIR += -I$(EXEROOT)/ocn/cvmix
-endif
-
 ifndef MCT_LIBDIR
   MCT_LIBDIR=$(SHAREDPATH)/mct
 endif
@@ -324,8 +315,7 @@ ifndef CISM_LIBDIR
   CISM_LIBDIR=$(GLC_DIR)/lib
 endif
 
-INCLDIR +=	-I$(SHAREDPATH)/include -I$(CIMEROOT)/share/csm_share/shr \
-		-I$(CIMEROOT)/share/csm_share/include
+INCLDIR += -I$(SHAREDPATH)/include -I$(CODEROOT)/csm_share/shr
 #
 # Use the MCT dir for the cache for all configure calls because it is the first one 
 #
@@ -335,10 +325,8 @@ CXXFLAGS := $(CFLAGS)
 CONFIG_ARGS +=  CC="$(SCC)" FC="$(SFC)" MPICC="$(MPICC)" \
                 MPIFC="$(MPIFC)" FCFLAGS="$(FFLAGS) $(FREEFLAGS) $(INCLDIR)" \
                 CPPDEFS="$(CPPDEFS)" CFLAGS="$(CFLAGS) -I.. $(INCLDIR)" \
-                NETCDF_PATH=$(NETCDF_PATH) LDFLAGS="$(LDFLAGS)" 
-ifeq ($(COMPILER),nag)
-  CONFIG_ARGS += LIBS="$(SLIBS)"
-endif
+                NETCDF_PATH=$(NETCDF_PATH) LDFLAGS="$(LDFLAGS)" \
+                LIBS="$(SLIBS)"
 
 FFLAGS += $(FPPDEFS)
 FFLAGS_NOOPT += $(FPPDEFS)
@@ -442,7 +430,7 @@ endif
 
 $(MCT_LIBDIR)/Makefile.conf: 
 	@echo "SHAREDLIBROOT |$(SHAREDLIBROOT)| SHAREDPATH |$(SHAREDPATH)|"; \
-	$(CONFIG_SHELL) $(CIMEROOT)/externals/mct/configure $(CONFIG_ARGS) --srcdir $(CIMEROOT)/externals/mct
+	$(CONFIG_SHELL) $(CODEROOT)/utils/mct/configure $(CONFIG_ARGS) --srcdir $(CODEROOT)/utils/mct
 
 $(MCT_LIBDIR)/mpeu/libmpeu.a: $(MCT_LIBDIR)/Makefile.conf
 	$(MAKE) -C $(MCT_LIBDIR)/mpeu
@@ -454,9 +442,9 @@ $(MCT_LIBDIR)/mpi-serial/libmpi-serial.a: $(MCT_LIBDIR)/Makefile.conf
 	$(MAKE) -C $(MCT_LIBDIR)/mpi-serial; \
 
 
-MCTLIBS = $(MCT_LIBDIR)/libmct.a $(MCT_LIBDIR)/libmpeu.a 
+MCTLIBS = $(MCT_LIBDIR)/mct/libmct.a $(MCT_LIBDIR)/mpeu/libmpeu.a 
 PIOLIB = $(PIO_LIBDIR)/libpio.a
-GPTLLIB = $(GPTL_LIBDIR)/libgptl.a
+GPTLLIB = $(SHAREDPATH)/gptl/libgptl.a
 
 ULIBS += -L$(SHAREDPATH)/$(COMP_INTERFACE)/$(ESMFDIR)/$(NINST_VALUE)/csm_share -lcsm_share -L$(SHAREDPATH)/lib -lpio -lgptl -lmct -lmpeu
 
@@ -476,7 +464,7 @@ CMAKE_OPTS += -D CMAKE_Fortran_FLAGS:STRING="$(FFLAGS) $(INCLDIR)" \
               -D CMAKE_CXX_FLAGS:STRING="$(CXXFLAGS) $(INCLDIR)" \
               -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON \
               -D NETCDF_DIR:STRING=$(NETCDF_PATH) \
-              -D USER_CMAKE_MODULE_DIR:STRING=$(CIMEROOT)/externals/CMake
+              -D USER_CMAKE_MODULE_DIR:STRING=$(UTILROOT)/CMake
 
 ifdef PNETCDF_PATH
 	CMAKE_OPTS += -D PNETCDF_DIR:STRING="$(PNETCDF_PATH)" 
@@ -485,6 +473,9 @@ else
 endif
 ifdef PIO_FILESYSTEM_HINTS
 	CMAKE_OPTS += -D PIO_FILESYSTEM_HINTS:STRING="$(PIO_FILESYSTEM_HINTS)"
+endif
+ifdef PIO_CONFIG_OPTS
+  CMAKE_OPTS += $(PIO_CONFIG_OPTS)
 endif
 
 # This captures the many cism-specific options to cmake
@@ -508,11 +499,11 @@ CMAKE_ENV_VARS += CC=$(CC) \
 .PHONY: $(GLC_DIR)/Makefile 
 $(GLC_DIR)/Makefile:
 	cd $(GLC_DIR); \
-	$(CMAKE_ENV_VARS) cmake $(CMAKE_OPTS) $(CIMEROOT)/../components/cism/glimmer-cism
+	$(CMAKE_ENV_VARS) cmake $(CMAKE_OPTS) $(CODEROOT)/glc/cism/glimmer-cism
 
 $(PIO_LIBDIR)/Makefile:
 	cd $(PIO_LIBDIR); \
-	$(CMAKE_ENV_VARS) cmake $(CMAKE_OPTS) $(CIMEROOT)/externals/pio
+	$(CMAKE_ENV_VARS) cmake $(CMAKE_OPTS) $(CODEROOT)/utils/pio
 
 #-------------------------------------------------------------------------------
 # Build & include dependency files
@@ -585,33 +576,8 @@ ifeq ($(ULIBDEP),$(null))
    ifneq ($(LIBROOT),$(null))
      ULIBDEP += $(LIBROOT)/libatm.a
      ULIBDEP += $(LIBROOT)/libice.a
-     ifeq ($(findstring clm5_0,$(CLM_CONFIG_OPTS)),clm5_0)
-          LNDLIB := libclm.a
-     else	
-          ifeq ($(findstring clm4_5,$(CLM_CONFIG_OPTS)),clm4_5)
-               LNDLIB := libclm.a
-          else	
-               LNDLIB := liblnd.a
-          endif
-     endif
-     ifeq ($(findstring libclm.a,$(LNDLIB)),libclm.a)
-        ULIBDEP += $(SHAREDPATH)/$(COMP_INTERFACE)/$(ESMFDIR)/lib/$(LNDLIB)
-     else
-        ULIBDEP += $(LIBROOT)/$(LNDLIB)
-     endif
-     ifeq ($(MODEL),driver)
-         ifeq ($(findstring libclm.a,$(LNDLIB)),libclm.a)
-             INCLDIR += -I$(SHAREDPATH)/$(COMP_INTERFACE)/$(ESMFDIR)/clm/obj
-         else
-             INCLDIR += -I$(EXEROOT)/lnd/obj
-         endif
-     endif
-
-
+     ULIBDEP += $(LIBROOT)/liblnd.a
      ULIBDEP += $(LIBROOT)/libocn.a
-     ifeq ($(COMP_OCN), pop)
-       ULIBDEP += $(LIBROOT)/libcvmix.a
-     endif
      ULIBDEP += $(LIBROOT)/librof.a
      ULIBDEP += $(LIBROOT)/libglc.a
      ULIBDEP += $(LIBROOT)/libwav.a
@@ -672,9 +638,6 @@ $(EXEC_SE): $(OBJS) $(ULIBDEP) $(CSMSHARELIB) $(MCTLIBS) $(PIOLIB) $(GPTLLIB)
 $(COMPLIB): $(OBJS) 
 	$(AR) -r $(COMPLIB) $(OBJS)
 
-$(LIBROOT)/libcvmix.a:
-	$(MAKE) -f $(CIMEROOT)/../components/pop/source/cvmix/Makefile SRC_DIR=$(CIMEROOT)/../components/pop/source/cvmix FC=$(SFC) FCFLAGS="$(FFLAGS) $(FREEFLAGS)" LIB_DIR=$(LIBROOT)
-
 .c.o:
 	$(CC) -c $(INCLDIR) $(INCS) $(CFLAGS)  $<
 .F.o:
@@ -684,12 +647,12 @@ $(LIBROOT)/libcvmix.a:
 .f90.o:
 	$(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS)  $<
 .F90.o:
-	$(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) $(CONTIGUOUS_FLAG) $<
+	$(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS)  $<
 .cpp.o:
 	$(CXX) -c $(INCLDIR) $(INCS) $(CXXFLAGS)  $<
 
 %.F90: %.F90.in
-	$(CIMEROOT)/externals/genf90/genf90.pl $< > $@
+	$(CCSMROOT)/tools/cprnc/genf90/genf90.pl $< > $@
 
 
 mostlyclean:
@@ -707,7 +670,7 @@ ifneq ($(MAKECMDGOALS), db_flags)
 ifneq ($(MAKECMDGOALS), mostlyclean)
 ifneq ($(MAKECMDGOALS), clean)
 ifneq ($(MAKECMDGOALS), realclean)
-    -include $(CURDIR)/Depends $(CASEROOT)/Depends.$(COMPILER) $(CASEROOT)/Depends.$(MACH)
+    -include $(CURDIR)/Depends $(CASEROOT)/Depends.$(COMPILER) $(CASEROOT)/Depends.$(MACH) $(CASEROOT)/Depends.$(MACH).$(COMPILER)
 endif
 endif
 endif

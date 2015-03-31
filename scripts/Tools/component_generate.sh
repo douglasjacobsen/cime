@@ -220,7 +220,7 @@ chmod ug+w,a+rx $baseline_dir/..
 #----------------------------------------------------------------------
 # Copy history file to baseline directory
 #----------------------------------------------------------------------
-cp $test_dir/$test_hist $baseline_dir/$baseline_hist
+cp -f $test_dir/$test_hist $baseline_dir/$baseline_hist
 if [ $? -ne 0 ]; then
     status="GFAIL"
     info="error copying history file to baseline directory"

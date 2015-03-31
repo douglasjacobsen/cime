@@ -40,19 +40,34 @@ program cesm_driver
    !--------------------------------------------------------------------------
    ! Setup and initialize the communications and logging.  
    !--------------------------------------------------------------------------
-   call cesm_pre_init1()
+   ! Timer initialization has to be after mpi init, so called inside of 
+   ! ccsm_pre_init1, as are t_startf for first two timers. When using pio async
+   ! option, servers do not return from ccsm_pre_init1, so t_stopf timers
+   ! are also called within ccsm_pre_init1.
+   !--------------------------------------------------------------------------
+!   call t_startf('DRIVER_INIT')
+!   call t_startf('ccsm_pre_init1')
+   call ccsm_pre_init1()
+!   call t_stopf('ccsm_pre_init1')
+!   call t_stopf('DRIVER_INIT')
 
+   call t_startf('DRIVER_INIT')
    !--------------------------------------------------------------------------
    ! Initialize ESMF.  This is done outside of the ESMF_INTERFACE ifdef
    ! because it is needed for the time manager, even if the ESMF_INTERFACE
    ! is not used.
    !--------------------------------------------------------------------------
+   call t_startf('ESMF_Initialize')
    call ESMF_Initialize()
+   call t_stopf('ESMF_Initialize')
 
    !--------------------------------------------------------------------------
    ! Read in the configuration information and initialize the time manager.
    !--------------------------------------------------------------------------
-   call cesm_pre_init2()
+   ! JGF ALERT
+   call t_startf('ccsm_pre_init2')
+   call ccsm_pre_init2()
+   call t_stopf('ccsm_pre_init2')
 
 #ifdef USE_ESMF_LIB
 
@@ -74,8 +89,11 @@ program cesm_driver
    ! cap component.
    !--------------------------------------------------------------------------
 
+   call t_startf('ccsm_init_esmf')
    call ESMF_CplCompInitialize(drvcomp, rc=localrc)
    if (localrc /= 0) call shr_sys_abort('failed to esmf initialize')
+   call t_stopf('ccsm_init_esmf')
+   call t_stopf('DRIVER_INIT')
 
    call ESMF_CplCompRun(drvcomp, rc=localrc)
    if (localrc /= 0) call shr_sys_abort('failed to esmf run')
@@ -89,9 +107,14 @@ program cesm_driver
    ! If ESMF is not defined, then just call the initialize, run and finalize
    ! routines directly.
    !--------------------------------------------------------------------------
-   call cesm_init()
-   call cesm_run()
-   call cesm_final()
+   ! JGF ALERT
+   call t_startf('ccsm_init')
+   call ccsm_init()
+   call t_stopf('ccsm_init')
+   call t_stopf('DRIVER_INIT')
+
+   call ccsm_run()
+   call ccsm_final()
 
 #endif
 

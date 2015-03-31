@@ -67,7 +67,7 @@ foreach NA (${NATM})
     echo "setting up case for $NA $CNT $NT "
 
     set case = t${casestr}${EXPN}_${NT}_${casebase}
-    cd ${cesmsrc}/cime/scripts
+    cd ${ccsmsrc}/cime/scripts
     echo ${casedir}/${case} >> $results_dir/test_list.out
     ./create_newcase -case ${casedir}/${case} -res ${res} -compset {$compset} -mach ${mach}
 
@@ -117,6 +117,10 @@ foreach NA (${NATM})
     ./cesm_setup
 
     if ($bldrun == "1") then
+       source ./Tools/ccsm_getenv
+       if ($SMP_BUILD != $SMP_VALUE && $SMP_BUILD != "0") then
+          ./${case}*.clean_build
+       endif
        ./${case}*.build
 
        rm tmpsubmit >& /dev/null

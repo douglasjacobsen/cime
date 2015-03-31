@@ -4,18 +4,6 @@
 # Modules and library paths
 #-------------------------------------------------------------------------------
 
-set CESM_REPO = `./xmlquery CCSM_REPOTAG -value`
-if($status == 0) then
-  set COMPILER = `./xmlquery COMPILER -value`
-  set MPILIB   = `./xmlquery MPILIB   -value`
-  set DEBUG    = `./xmlquery DEBUG    -value`
-else
-  echo $0 using settings from environment:
-endif
-echo "COMPILER=$COMPILER"
-echo "MPILIB=$MPILIB"
-echo "DEBUG=$DEBUG"
-
 if (-e /opt/modules/default/init/csh) then
   source /opt/modules/default/init/csh
   module rm PrgEnv-intel
@@ -39,11 +27,12 @@ endif
 
 if ( $COMPILER == "pgi" ) then
     module load PrgEnv-pgi/4.1.40
-    module switch pgi pgi/14.7.0
+    module switch pgi       pgi/13.6.0
 endif    
 if ( $COMPILER == "intel" ) then
     module load PrgEnv-intel 
     module switch intel      intel/12.1.5.339
+    setenv MKL "-mkl=cluster"
 endif    
 if ( $COMPILER == "cray" ) then
     module load PrgEnv-cray
@@ -79,14 +68,10 @@ else
   module load esmf/6.2.0-defio-mpi-O
 endif
 
-
-
+module list >& software_environment.txt
 #-------------------------------------------------------------------------------
 # Runtime environment variables
 #-------------------------------------------------------------------------------
-
-setenv MPICH_ENV_DISPLAY 1
-setenv MPICH_VERSION_DISPLAY 1
 
 limit coredumpsize unlimited
 limit stacksize unlimited
@@ -94,3 +79,9 @@ limit stacksize unlimited
 # The environment variable below increase the stack size, which is necessary for
 # CICE to run threaded on this machine.  
 setenv OMP_STACKSIZE 64M
+
+# Capture logical to physics PE assignment and active environment variable 
+# settings
+setenv MPICH_ENV_DISPLAY 1
+setenv MPICH_VERSION_DISPLAY 1
+setenv MPICH_CPUMASK_DISPLAY 1

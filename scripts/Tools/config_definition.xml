@@ -37,23 +37,7 @@
  valid_values=""  
  value="UNSET" 
  group="case_def"
- sdesc="full pathname of source root directory (currently equal to SRCROOT for backwards compatibility)"
-></entry> 
-
-<entry id="SRCROOT" 
- type="char"
- valid_values=""  
- value="UNSET" 
- group="case_def"
- sdesc="full pathname of source root directory"
-></entry> 
-
-<entry id="CIMEROOT" 
- type="char"
- valid_values=""  
- value="UNSET" 
- group="case_def"
- sdesc="full pathname of CIME source root directory"
+ sdesc="full pathname of CESM source root directory"
 ></entry> 
 
 <entry id="MACH" 
@@ -91,7 +75,7 @@
 <entry id="PROJECT" 
  type="char"
  valid_values=""  
- value="PROJECT_UNSET" 
+ value="PROJECT_UNSET"
  group="case_desc"
  sdesc="project for project-sensitive build and run paths, and job scripts"
 ></entry> 
@@ -138,8 +122,8 @@
 
 <entry id="COMP_OCN" 
  type="char"
- valid_values="pop,docn,xocn,socn,aquap,mpas-o" 
- value="pop"  
+ valid_values="pop2,docn,xocn,socn,aquap,mpas-o" 
+ value="pop2"  
  group="case_comp"
  sdesc="Name of ocean component"
 ></entry>
@@ -171,17 +155,17 @@
 <entry id="SCRIPTSROOT" 
  type="char"
  valid_values="" 
- value="$CIMEROOT/scripts" 
+ value="$CCSMROOT/cime/scripts" 
  group="case_der"
- sdesc="CESM source scripts directory location (setup automatically to $CIMEROOT/scripts- DO NOT EDIT)"
+ sdesc="CESM source scripts directory location (setup automatically to $CCSMROOT/cime/scripts- DO NOT EDIT)"
 ></entry>
 
 <entry id="UTILROOT" 
  type="char"
  valid_values="" 
- value="$CIMEROOT/scripts/Tools" 
+ value="$CCSMROOT/cime/scripts/Tools" 
  group="case_der"
- sdesc="CESM source scripts utils directory location (setup automatically to $CIMEROOT/scripts/Tools - DO NOT EDIT)"
+ sdesc="CESM source scripts utils directory location (setup automatically to $CCSMROOT/cime/scripts/Tools - DO NOT EDIT)"
 ></entry>
 
 <entry id="OS" 
@@ -1116,10 +1100,10 @@ a restart file."
  group="run_cesm"
  sdesc="Only used for C,G compsets: if ocn, ocn provides EP balance factor for precip"
  ldesc="
-Provides EP balance factor for precip for POP. A factor computed by
-POP is applied to precipitation so that precipitation balances
+Provides EP balance factor for precip for POP2. A factor computed by
+POP2 is applied to precipitation so that precipitation balances
 evaporation and ocn global salinity does not drift. This is intended
-for use when coupling POP to a DATM. Only used for C and G compsets.
+for use when coupling POP2 to a DATM. Only used for C and G compsets.
 Default is off."
 ></entry>
 
@@ -1243,7 +1227,7 @@ Provides the use_case option for the CAM build-namelist utility
 The CAM build-namelist leverages groups of namelist options
 (use cases) that are often paired with the CAM configure options.
 These use cases are xml files located in
-$CIMEROOT/../components/atm/cam/bld/namelist_files/use_cases.
+$CCSMROOT/components/atm/cam/bld/namelist_files/use_cases.
 In general, this variable should not be modified for supported
 component sets (compsets). 
 Recommendation: If you want to modify this value for your experiment, 
@@ -1576,14 +1560,14 @@ to set this value, must first set CICE_AUTO_DECOMP to false "
 ></entry>
 
 <!-- ======================================================================= -->
-<!-- POP                                                                    -->
+<!-- POP2                                                                    -->
 <!-- ======================================================================= -->
 
 <entry id="OCN_COUPLING" 
  type="char"
  valid_values="full,partial"  
  value="full" 
- group="run_component_pop"
+ group="run_component_pop2"
  sdesc="surface heat and freshwater forcing, partial is consistent with coupling to a data atm model"
  ldesc="
 Determine surface freshwater and heat forcing settings. 
@@ -1599,7 +1583,7 @@ Users should NOT EDIT this setting."
  type="char"
  valid_values="active,inactive"  
  value="active" 
- group="run_component_pop"
+ group="run_component_pop2"
  sdesc="under ice forcing, inactive is consistent with coupling to a data ice model"
  ldesc="
 Determine under-ice forcing settings. 
@@ -1614,11 +1598,11 @@ Users should NOT EDIT this setting."
  type="char"
  valid_values="diagnostic,prognostic"  
  value="diagnostic" 
- group="run_component_pop"
+ group="run_component_pop2"
  sdesc="provenance of surface Chl for radiative penetration computations"
  ldesc="
 Determines provenance of surface Chl for radiative penetration
-computations. This option is used in the POP ecosystem model.
+computations. This option is used in the POP2 ecosystem model.
 The default is diagnostic." 
 ></entry> 
 
@@ -1626,11 +1610,11 @@ The default is diagnostic."
  type="char"
  valid_values="constant,prognostic,diagnostic"  
  value="constant" 
- group="run_component_pop"
+ group="run_component_pop2"
  sdesc="provenance of atmospheric CO2 for gas flux computation"
  ldesc="
 Determines provenance of atmospheric CO2 for gas flux computation.
-This option is used in the POP ecosystem model. 
+This option is used in the POP2 ecosystem model. 
 The default is constant."
 ></entry> 
 
@@ -1638,7 +1622,7 @@ The default is constant."
  type="char"
  valid_values="TRUE,FALSE"
  value="TRUE" 
- group="run_component_pop"
+ group="run_component_pop2"
  sdesc="TRUE implies using fix to pH scale of carbon thermodynamic constants"
 ></entry> 
 
@@ -1646,12 +1630,12 @@ The default is constant."
  type="char"
  valid_values="unset,1850-2000,rcp4.5,rcp8.5"  
  value="unset" 
- group="run_component_pop"
+ group="run_component_pop2"
  sdesc="specification of transient forcing datasets"
  ldesc="
 Determine settings for transient forcing datasets (e.g., atmospheric pCFC
 concentrations). The create_newcase command selects the appropriate setting for this 
-variable based on the specified compset. This option is used in the POP ecosystem model.
+variable based on the specified compset. This option is used in the POP2 ecosystem model.
 Users should NOT EDIT this setting." 
 ></entry> 
 
@@ -1659,7 +1643,7 @@ Users should NOT EDIT this setting."
  type="char"
  valid_values=""
  value=""
- group="build_component_pop"
+ group="build_component_pop2"
  sdesc="Optional ocean submodel option.  Any one of: moby"
 ></entry>
 
@@ -1667,7 +1651,7 @@ Users should NOT EDIT this setting."
  type="char"
  valid_values="" 
  value="" 
- group="build_component_pop"
+ group="build_component_pop2"
  sdesc="Optional ocean tracers.  Valid values are Any combination of: iage cfc ecosys"
 ></entry>
 
@@ -1675,7 +1659,7 @@ Users should NOT EDIT this setting."
  type="char"
  valid_values=""
  value=""
- group="build_component_pop"
+ group="build_component_pop2"
  sdesc="Optional ocean tracers option.  Any one of: darwin quota mono"
 ></entry>
 
@@ -1683,7 +1667,7 @@ Users should NOT EDIT this setting."
  type="char"
  valid_values="TRUE,FALSE"
  value="FALSE"
- group="run_component_pop"
+ group="run_component_pop2"
  sdesc="tavg output control for tracer-budget terms"
 ></entry>
 
@@ -1691,7 +1675,7 @@ Users should NOT EDIT this setting."
  type="char"
  valid_values="TRUE,FALSE"
  value="FALSE"
- group="run_component_pop"
+ group="run_component_pop2"
  sdesc="tavg output control for high-frequency output"
 ></entry>
 
@@ -1699,23 +1683,23 @@ Users should NOT EDIT this setting."
  type="char"
  valid_values="TRUE,FALSE"  
  value="FALSE" 
- group="run_component_pop"
- sdesc="TRUE turns off all horizontal motion in POP"
+ group="run_component_pop2"
+ sdesc="TRUE turns off all horizontal motion in POP2"
 ></entry> 
 
 <entry id="POP_TAVG_R8"
  type="char"
  valid_values="TRUE,FALSE"
  value="FALSE"
- group="build_component_pop"
- sdesc="If TRUE then time-averaged history files from POP will contain double precision output"
+ group="build_component_pop2"
+ sdesc="If TRUE then time-averaged history files from POP2 will contain double precision output"
 ></entry>
 
 <entry id="POP_AUTO_DECOMP"
  type="logical"
  valid_values="true,false"
  value="true"
- group="build_component_pop"
+ group="build_component_pop2"
  sdesc="if false, user must set the POP decomp, otherwise cesm_setup script sets it"
 ></entry>
 
@@ -1723,7 +1707,7 @@ Users should NOT EDIT this setting."
  type="integer"
  valid_values=""
  value="0"
- group="build_component_pop"
+ group="build_component_pop2"
  sdesc="Size of pop block in first horiz dimension (do not edit if POP_AUTO_DECOMP is true)"
 ></entry>
 
@@ -1731,7 +1715,7 @@ Users should NOT EDIT this setting."
  type="integer"
  valid_values=""
  value="0"
- group="build_component_pop"
+ group="build_component_pop2"
  sdesc="Size of pop block in second horiz dimension (do not edit if POP_AUTO_DECOMP is true)"
 ></entry>
 
@@ -1739,7 +1723,7 @@ Users should NOT EDIT this setting."
  type="integer"
  valid_values=""
  value="0"
- group="build_component_pop"
+ group="build_component_pop2"
  sdesc="Number of pop blocks in first horiz dimension (do not edit if POP_AUTO_DECOMP is true)"
 ></entry>
 
@@ -1747,7 +1731,7 @@ Users should NOT EDIT this setting."
  type="integer"
  valid_values=""
  value="0"
- group="build_component_pop"
+ group="build_component_pop2"
  sdesc="Number of pop blocks in second horiz dimension (do not edit if POP_AUTO_DECOMP is true)"
 ></entry>
 
@@ -1755,7 +1739,7 @@ Users should NOT EDIT this setting."
  type="integer"
  valid_values=""
  value="0"
- group="build_component_pop"
+ group="build_component_pop2"
  sdesc="Max number of pop blocks per processor (do not edit if POP_AUTO_DECOMP is true)"
 ></entry>
 
@@ -1763,7 +1747,7 @@ Users should NOT EDIT this setting."
  type="char"
  valid_values=""
  value="0"
- group="build_component_pop"
+ group="build_component_pop2"
  sdesc="pop block distribution type (do not edit if POP_AUTO_DECOMP is true)"
 ></entry>
 
@@ -1771,7 +1755,7 @@ Users should NOT EDIT this setting."
  type="char"
  valid_values=""
  value="UNSET"
- group="build_component_pop"
+ group="build_component_pop2"
  sdesc="POP cpp definitions (setup automatically - DO NOT EDIT)"
 ></entry>
 
@@ -1943,7 +1927,7 @@ calculates the ice/atmosphere and ice/ocean fluxes. DICE receives the same
 atmospheric input from the coupler as the active CICE model (i.e., atmospheric 
 states, shortwave fluxes, and ocean ice melt flux). DICE acts very similarly
 to CICE running in prescribed mode.) Currently, this component is only
-used to drive POP in C compsets.
+used to drive POP2 in C compsets.
 If DICE_MODE is set to ssmi or ssmi_iaf, it is a prognostic mode. 
 It requires data be sent to the ice model. 
 Ice fraction (extent) data is read from an input stream,
@@ -2705,11 +2689,10 @@ needs to have enough disk space for the experimental configuration
 requirements. As an example, CESM can produce more than a terabyte of
 data during a 100-year run, so you should set EXEROOT to scratch or
 tmp space and frequently back up the data to a mass storage device
-EXEROOT is set in $CIMEROOT/machines/config_machines.xml
+EXEROOT is set in CCSMROOT/cime/machines/config_machines.xml
 for each supported machine.  Must explicitly set it in env_build.xml for a
 userdefined machine."
 ></entry> 
-
 
 <entry id="OS" 
  type="char"
@@ -2726,7 +2709,7 @@ userdefined machine."
  group="build_macros"
  sdesc="machine compiler (must match one the supported compilers) - ignored once Macros has been created"
  ldesc="
-Set in $CIMEROOT/machines/config_machines.xml for each machine."
+Set in $CCSMROOT/cime/machines/config_machines.xml for each machine."
 ></entry> 
 
 <entry id="COMPILER" 
@@ -2736,7 +2719,7 @@ Set in $CIMEROOT/machines/config_machines.xml for each machine."
  group="build_macros"
  sdesc="Machine compiler (must match one the supported compilers)"
  ldesc="
-Set in $CIMEROOT/machines/config_machines.xml for each supported machine.
+Set in $CCSMROOT/cime/machines/config_machines.xml for each supported machine.
 Must be explicitly set in env_build.xml for userdefined machine."
 ></entry> 
 
@@ -2747,7 +2730,7 @@ Must be explicitly set in env_build.xml for userdefined machine."
  group="build_macros"
  sdesc="supported mpi libraries for target machine - set in config_machines.xml - (DO NOT EDIT)"
  ldesc="
-Set in $CIMEROOT/machines/config_machines.xml for each supported machine.
+Set in $CCSMROOT/cime/machines/config_machines.xml for each supported machine.
 Must be explicitly set in env_build.xml for userdefined machine."
 ></entry> 
 
@@ -2766,7 +2749,7 @@ Must be explicitly set in env_build.xml for userdefined machine."
  group="build_macros"
  sdesc="mpi library (must match one of the supported libraries) - ignored once Macros has been created"
  ldesc="
-Set in $CIMEROOT/machines/config_machines.xml for each supported machine.
+Set in $CCSMROOT/cime/machines/config_machines.xml for each supported machine.
 Must be explicitly set in env_build.xml for userdefined machine."
 ></entry> 
 
@@ -3044,6 +3027,14 @@ RUNDIR allows you to keep the run directory separate from the build directory."
  sdesc="level of debug output, 0=minimum, 1=normal, 2=more, 3=too much"
 ></entry> 
 
+<entry id="TIMER_DETAIL" 
+ type="integer"
+ valid_values="0,1,2"  
+ value="1" 
+ group="run_flags"
+ sdesc="timer output detail"
+></entry>
+
 <entry id="TIMER_LEVEL" 
  type="integer"
  valid_values=""
@@ -3052,6 +3043,23 @@ RUNDIR allows you to keep the run directory separate from the build directory."
  sdesc="timer output depth"
 ></entry>
 
+<entry id="TPROF_TOTAL" 
+ type="integer"
+ valid_values=""  
+ value="12" 
+ group="run_flags"
+ sdesc="number of timing output checkpoints"
+></entry>
+
+<entry id="SYSLOG_N" 
+ type="integer"
+ valid_values=""  
+ value="900" 
+ group="run_flags"
+ sdesc="system workload snapshot frequency"
+ ldesc="system workload snapshot frequency (in seconds, if greater than 0; disabled otherwise)"
+></entry>
+ 
 <entry id="NCPL_BASE_PERIOD" 
  type="char"
  valid_values="hour,day,year,decade" 
@@ -3171,7 +3179,7 @@ Extra copies of the component log files will be saved here."
 The root directory of CESM input data for the selected machine.
 This is usually a shared disk area.
 Default values for the target machine are in the
-$CIMEROOT/machines/config_machines.xml'
+$CCSMROOT/cime/machines/config_machines.xml'
 ></entry> 
 
 <entry id="DIN_LOC_ROOT_CLMFORC" 
@@ -3187,7 +3195,7 @@ for datm forcing data that is NOT checked into the svn repository
 (datasets other than the Qian or single-point forcing).
 This is usually a shared disk area.
 Default values for the target machine are in the
-$CIMEROOT/machines/config_machines.xml'
+$CCSMROOT/cime/machines/config_machines.xml'
 ></entry> 
 
 <entry id="DOUT_S" 
@@ -3562,10 +3570,18 @@ restarting where the previous finished."
 <entry id="SAVE_TIMING" 
  type="logical"
  valid_values="TRUE,FALSE"  
- value="FALSE" 
+ value="TRUE" 
  group="run_flags"
  sdesc="logical to save timing files in rundir"
 ></entry>
+
+<entry id="SAVE_TIMING_DIR" 
+ type="char"
+ valid_values=""  
+ value="/UNSET" 
+ group="run_flags"
+ sdesc="directory for archiving performance data"
+></entry> 
 
 <!-- ======================================================================= -->
 <!-- env_run.xml - pio                                                       -->

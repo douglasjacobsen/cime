@@ -17,7 +17,7 @@ use POSIX qw(strftime);
 my $CASEROOT; 
 my $CASEBUILD;
 my $CASETOOLS;
-my $CIMEROOT;
+my $CCSMROOT;
 my $LIBROOT;
 my $INCROOT; 
 my $SHAREDLIBROOT;
@@ -72,7 +72,7 @@ sub main {
     $CASEBUILD	        = `./xmlquery  CASEBUILD	-value `;
     $CASETOOLS          = `./xmlquery  CASETOOLS	-value `;
     $EXEROOT	        = `./xmlquery  EXEROOT		-value `;
-    $CIMEROOT		= `./xmlquery  CIMEROOT		-value `;
+    $CCSMROOT		= `./xmlquery  CCSMROOT		-value `;
     $INCROOT		= `./xmlquery  INCROOT		-value `;
     $LIBROOT		= `./xmlquery  LIBROOT		-value `;
     $SHAREDLIBROOT	= `./xmlquery  SHAREDLIBROOT	-value `;
@@ -99,7 +99,7 @@ sub main {
     my $OS	        = `./xmlquery  OS		-value `;
     my $COMP_CPL	= `./xmlquery  COMP_CPL		-value `;
 
-    $ENV{CIMEROOT}		= $CIMEROOT		;
+    $ENV{CCSMROOT}		= $CCSMROOT		;
     $ENV{CASETOOLS}		= $CASETOOLS		;
     $ENV{EXEROOT}		= $EXEROOT		;
     $ENV{INCROOT}		= $INCROOT		;
@@ -402,7 +402,7 @@ sub buildLibraries()
     chdir $EXEROOT;
 
     if ($MPILIB eq 'mpi-serial') {
-	my $sysmod = "cp -p -f $CIMEROOT/externals/mct/mpi-serial/\*.h  $LIBROOT/include/.";
+	my $sysmod = "cp -p -f $CCSMROOT/cime/externals/mct/mpi-serial/\*.h  $LIBROOT/include/.";
 	system($sysmod) == 0 or die "$sysmod failed: $?\n";
     }
     
@@ -448,6 +448,13 @@ sub buildModel()
     print "    .... calling cesm builds for component libraries  \n";
 
     chdir "$CASEROOT" or die "Could not cd to $CASEROOT: $!\n";
+
+    {
+        my $sdate = strftime("%y%m%d-%H%M%S", localtime);
+        open my $CS, ">", "./CaseStatus";
+        print $CS "build started $sdate\n";
+        close $CS;
+    }
 
     my $LOGDIR          = `./xmlquery LOGDIR          -value `;
 
@@ -539,7 +546,50 @@ sub buildModel()
     #--- Copy the just-built cesm.exe to cesm.exe.$LID
     copy("$EXEROOT/cesm.exe", "$EXEROOT/cesm.exe.$LID");
     chmod 0755, "$EXEROOT/cesm.exe.$LID" or warn "could not change perms on $EXEROOT/cesm.exe.$LID, $?";
-	
+
+    # JGF ALERT - Port the following to Perl
+    # --- save model provenance with the executable
+    # cd $CCSMROOT
+    # if (-d $CCSMROOT/.git) then
+    #     git describe > $EXEROOT/GIT_DESCRIBE.$LID
+    #     chmod 664 $EXEROOT/GIT_DESCRIBE.$LID
+    #     /bin/cp -p $EXEROOT/GIT_DESCRIBE.$LID $EXEROOT/GIT_DESCRIBE
+    #     if (-f $CCSMROOT/.git/logs/HEAD) then
+    #         /bin/cp $CCSMROOT/.git/logs/HEAD $EXEROOT/GIT_LOGS_HEAD.$LID
+    #         chmod 664 $EXEROOT/GIT_LOGS_HEAD.$LID
+    #         /bin/cp -p $EXEROOT/GIT_LOGS_HEAD.$LID $EXEROOT/GIT_LOGS_HEAD
+    #     else
+    #         /bin/rm -f $EXEROOT/GIT_LOGS_HEAD
+    #         touch $EXEROOT/GIT_LOGS_HEAD
+    #     endif
+    # endif
+    # if (-d $CCSMROOT/.svn) then
+    #     svn info > $EXEROOT/SVN_INFO.$LID
+    #     chmod 664 $EXEROOT/SVN_INFO.$LID
+    #     /bin/cp -p $EXEROOT/SVN_INFO.$LID $EXEROOT/SVN_INFO
+
+    #     if (-f $CCSMROOT/.svn/wc.db) then
+    #         /bin/cp $CCSMROOT/.svn/wc.db $EXEROOT/SVN_WC.DB.$LID
+    #         chmod 664 $EXEROOT/SVN_WC.DB.$LID
+    #         /bin/cp -p $EXEROOT/SVN_WC.DB.$LID $EXEROOT/SVN_WC.DB
+    #     else
+    #         /bin/rm -f $EXEROOT/SVN_WC.DB
+    #         touch $EXEROOT/SVN_WC.DB
+    #     endif
+    # endif
+    # if (-d $CASEROOT/SourceMods) then
+    #     cd $CASEROOT
+    #     /bin/tar cf $EXEROOT/SourceMods.$LID.tar SourceMods
+    #     cd $EXEROOT
+    #     /bin/cp SourceMods.$LID.tar SourceMods.tar
+    # endif
+    # if (-f $CASEROOT/software_environment.txt) then
+    #     cd $CASEROOT
+    #     /bin/cp software_environment.txt $EXEROOT/build_environment.$LID.txt
+    #     cd $EXEROOT
+    #     /bin/cp build_environment.$LID.txt build_environment.txt
+    # endif
+
     #copy build logs to CASEROOT/logs
     if(length($LOGDIR) > 0) {
 	if(! -d "$LOGDIR/bld") {
@@ -584,10 +634,12 @@ sub buildModel()
 	print " .... locking file $file\n";
     }
     
-    my $sdate = strftime("%y%m%d-%H%M%S", localtime);
-    open my $CS, ">", "./CaseStatus";
-    print $CS "build complete $sdate\n";
-    close $CS;
+    {
+        my $sdate = strftime("%y%m%d-%H%M%S", localtime);
+        open my $CS, ">>", "./CaseStatus";
+        print $CS "build complete $sdate\n";
+        close $CS;
+    }
 }
 
 main() unless caller; 

@@ -2,8 +2,6 @@
 
 use strict;
 use Cwd;
-use English;
-use XML::LibXML;
 
 #-------------------------------------------------------------------------------
 # This script derives task and thread batch settings
@@ -21,7 +19,7 @@ my $taskgeomflag = -1; # task geometry string for IBM
 my $thrdgeomflag = -1; # thread geometry string for IBM
 my $aprunflag    = -1; # aprun options for Cray XT
 my $pbsrsflag    = -1; # pbs resources option for NAS (NASA pleiades)
-my $nas_node_type    ; # NAS node type name (wes|san|ivy|has)
+my $nas_node_type    ; # NAS node type name (har|wes|san)
 my $document     = -1; # document the layout
 my $removedeadtasks = 0; # remove dead tasks or reset to 1
 
@@ -57,7 +55,7 @@ elsif ($#ARGV eq 0 ){ # one argument
       $document = 1;
    }
    else {
-      print "(taskmaker.pl) Usage: taskmaker.pl [-taskgeom|-thrdgeom|-sumpes|-sumtasks|-maxthrds|-aprun|-pbsrs (wes|san|ivy|has)] \n";
+      print "(taskmaker.pl) Usage: taskmaker.pl [-taskgeom|-thrdgeom|-sumpes|-sumtasks|-maxthrds|-aprun|-pbsrs (har|wes|san)] \n";
       exit;
    }
 }
@@ -67,31 +65,33 @@ elsif ($#ARGV eq 1 ){ # two arguments
        $pbsrsflag = 1; $nas_node_type = $ARGV[1];
    }
    else {
-      print "(taskmaker.pl) Usage: taskmaker.pl [-taskgeom|-thrdgeom|-sumpes|-sumtasks|-maxthrds|-aprun|-pbsrs (wes|san|ivy|has)] \n";
+      print "(taskmaker.pl) Usage: taskmaker.pl [-taskgeom|-thrdgeom|-sumpes|-sumtasks|-maxthrds|-aprun|-pbsrs (har|wes|san)] \n";
       exit;
    }
 }
 else { # more than two arguments
-   print "(taskmaker.pl) Usage: taskmaker.pl [-taskgeom|-thrdgeom|-sumpes|-sumtasks|-maxthrds|-aprun|-pbsrs (wes|san|ivy|has)] \n";
+   print "(taskmaker.pl) Usage: taskmaker.pl [-taskgeom|-thrdgeom|-sumpes|-sumtasks|-maxthrds|-aprun|-pbsrs (har|wes|san)] \n";
    exit;
 }
 
 #-------------------------------------------------------------------------------
 # parse the xml files to create xmlvars hash
-# add the list of ALL *xml fields to a hash
 #-------------------------------------------------------------------------------
-my $parser = XML::LibXML->new( no_blanks => 1);
 my $caseroot = $ENV{CASEROOT};
-my @files = <${caseroot}/*xml>;
+my $dirs = "${caseroot}/Tools";
+unshift @INC, $dirs;
+require XML::Lite;
 
 my %xmlvars = ();
+
+
+my @files = <${caseroot}/*xml>;
 foreach my $file (@files) {
-    my $xml = $parser->parse_file($file);
-    my @nodes = $xml->findnodes("//entry");
-    foreach my $node (@nodes) {
-	my $id_attr = $node->getAttribute('id');
-	my $val_attr = $node->getAttribute('value');
-	$xmlvars{$id_attr} = $val_attr;
+    my $xml = XML::Lite->new( "$file" );
+    my @e = $xml->elements_by_name('entry');
+    while ( my $e = shift @e ) {
+	my %a = $e->get_attributes();
+	$xmlvars{$a{'id'}} = $a{'value'};
     }
 }
 

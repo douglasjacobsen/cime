@@ -15,7 +15,7 @@ endif
 
 #--- clone the main case to create ref1 case
 set CASER0  = ${CASEROOT}
-set CASERR1 = ${CASEROOT}.ref1
+set CASERR1 = ${CASEROOT}/${CASE}.ref1
 set CASE0   = ${CASE}
 
 cd $CASER0
@@ -27,7 +27,7 @@ set STOP_OPTION = `./xmlquery STOP_OPTION     -value`
 @ stopn1 = ${STOP_N} / 2
 @ stopn2 = ${stopnf} - $stopn1
 
-cd $CIMEROOT/scripts
+cd $CCSMROOT/cime/scripts
 rm -r -f ${CASERR1}; ./create_clone -case ${CASERR1} -clone ${CASER0} 
 
 cd $CASERR1

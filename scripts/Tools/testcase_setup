@@ -75,7 +75,7 @@ if (! -e "$caseroot/xmlquery" ) {
 
 my $mach		=  `./xmlquery MACH			-value`;
 my $ccsm_machdir	=  `./xmlquery CCSM_MACHDIR		-value`;
-my $cimeroot		=  `./xmlquery CIMEROOT			-value`;
+my $ccsmroot		=  `./xmlquery CCSMROOT			-value`;
 my $rundir              =  `./xmlquery RUNDIR			-value`;
 my $exeroot             =  `./xmlquery EXEROOT			-value`;
 my $libroot             =  `./xmlquery LIBROOT			-value`;
@@ -178,7 +178,7 @@ my $testcase_interp = <<END_INTERP;
     set CASE			=  $case
     set CASEBASEID		=  $casebaseid
     set TEST_TESTID		=  $test_testid 
-    set CIMEROOT		=  $cimeroot
+    set CCSMROOT		=  $ccsmroot
     set SCRIPTSROOT             =  $scriptsroot
     set RUNDIR                  =  $rundir
     set EXEROOT                 =  $exeroot
@@ -248,8 +248,14 @@ END_BEGIN
 
 print $testfh $testcase_begin;
 
-$sysmod = "cat ${cimeroot}/scripts/Testing/Testcases/${testcase}" . "_script" . " >> $testfile";
+$sysmod = "cat ${ccsmroot}/cime/scripts/Testing/Testcases/${testcase}" . "_script" . " >> $testfile";
 system($sysmod) == 0 or die "ERROR: $sysmod failed: $? $eol";
+
+# JGF ALERT: Determine if new IOP behavior is acceptable to ACME
+#   Issues:
+#     * Subcase names need to be unique so cannot conflict with other testcases
+#     * Subcase should go in subdirectory of parent case
+#     * IOP subcases should not perform baseline actions
 
 my $testcase_iop = <<'END_IOP';
 
@@ -292,7 +298,7 @@ END_IOP
 if ( "${case}" =~ /.+_IOP.+/ ) {
     print $testfh $testcase_iop;
 
-    $sysmod = "cat ${cimeroot}/scripts/Testing/Testcases/${testcase}" . "_script" . " >> $testfile";
+    $sysmod = "cat ${ccsmroot}/cime/scripts/Testing/Testcases/${testcase}" . "_script" . " >> $testfile";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $? $eol";
 }
 
@@ -406,23 +412,14 @@ my $testcase_end = <<'END_TEST';
        endif
 
        if ("$continue_generate" == 'yes') then
-          if ( -e $BASEGEN_DIR/cpl.log ) then
-	     echo "WARNING:  component model data already exists - WILL NOT OVERWRITE " >>& $TESTSTATUS_LOG
-	     echo "" >>& $TESTSTATUS_LOG
-	     echo "GFAIL:  component model data already exists " >>& $TESTSTATUS_OUT
-	     set continue_generate = 'no'
-	  endif
-       endif
-
-       if ("$continue_generate" == 'yes') then
           ${SCRIPTSROOT}/Tools/component_compgen_baseline.sh -baseline_dir $BASEGEN_DIR -test_dir $RUNDIR -generate_tag $BASEGEN_NAME -testcase_base $CASEBASEID >>& $TESTSTATUS_OUT
 
 	  # save last coupler log file to baseline directory
-	  cp $CplLogFile $BASEGEN_DIR/cpl.log || echo "WARNING: could not copy $CplLogFile to $BASEGEN_DIR " >>& $TESTSTATUS_LOG
+	  cp -f $CplLogFile $BASEGEN_DIR/cpl.log || echo "WARNING: could not copy $CplLogFile to $BASEGEN_DIR " >>& $TESTSTATUS_LOG
 	  chmod ug+w,a+r $BASEGEN_DIR/cpl.log
 	  
 	  if ($?CPLPROF_GENCMP) then # this variable is set in the test script
-	     cp $CPLPROF_GENCMP $BASEGEN_DIR/timing_summary || echo "WARNING: could not copy $CPLPROF_GENCMP to $BASEGEN_CPLPROFFILE" >>& $TESTSTATUS_LOG
+	     cp -f $CPLPROF_GENCMP $BASEGEN_DIR/timing_summary || echo "WARNING: could not copy $CPLPROF_GENCMP to $BASEGEN_CPLPROFFILE" >>& $TESTSTATUS_LOG
 	     chmod ug+w,a+r $BASEGEN_DIR/timing_summary
 	  endif
 
@@ -522,7 +519,7 @@ my $testcase_end = <<'END_TEST';
 
    if ( "$GENERATE_BASELINE" == "TRUE" ) then
       if (-e $BASEGEN_DIR) then
-         cp $TESTSTATUS_LOG ${BASEGEN_DIR}/${TESTSTATUS_LOG:t}
+         cp -f $TESTSTATUS_LOG ${BASEGEN_DIR}/${TESTSTATUS_LOG:t}
          chmod ug+w,a+r ${BASEGEN_DIR}/${TESTSTATUS_LOG:t}
        endif
    endif

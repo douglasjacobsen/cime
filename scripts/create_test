@@ -10,7 +10,6 @@ use Cwd qw( getcwd abs_path chdir);
 use English;
 use Getopt::Long;
 use IO::File;
-use IO::Dir;
 use IO::Handle;
 use File::Basename;
 use File::Copy;
@@ -44,7 +43,6 @@ my $ProgDir = $1;
 my $cwd = getcwd;
 my $cfgdir;
 my $scriptsroot;
-my $cimeroot;
 my $testlistsubdirxml;
 my $testlid; 
 my $suitemode = 0;
@@ -74,7 +72,7 @@ SYNOPSIS
     Options:
       [-autosubmit        on|off]
       [-baselineroot      path to baslineroot]
-      [-cimeroot          alternate_cimeroot]
+      [-cesmroot          alternate_cesmroot]
       [-clean             on|off]
       [-compiler          compiler]
       [-compset_file      specified_compset_file]
@@ -151,7 +149,7 @@ OPTIONS:
                             testing.  If this argument is not supplied, the 
                             default baselineroot will be used from scripts. 
 
-      -cimeroot <dir>       manually specify the root directory of your CESM 
+      -cesmroot <dir>       manually specify the root directory of your CESM 
                             sandbox. 
       
       -clean [on|off]       If tests should be cleaned or not after tests are 
@@ -343,10 +341,13 @@ sub initialize()
   $testlid = `date +%y%m%d-%H%M%S`;
   chomp $testlid;
 
-  $cimeroot = abs_path("$cfgdir/../");
-  my @dirs = ("$cfgdir", "$cimeroot/scripts/Tools", "$cimeroot/utils/perl5lib");
+  my $ccsmroot = abs_path("$cfgdir/../../");
+  my @dirs = ("$cfgdir", 
+	      "$ccsmroot/cime/scripts/Tools", 
+	      "$ccsmroot/cime/utils/perl5lib");
 
   unshift @INC, @dirs;
+  require XML::Lite;
   require ConfigCase;
   require SetupTools;
   $commandline = "create_test @ARGV";  
@@ -363,7 +364,7 @@ sub initialize()
   %opts = (
            autosubmit           => 'on',
            baselineroot         => undef,
-           cimeroot             => "$cimeroot",
+           cesmroot             => "$ccsmroot",
            clean                => "off",
            compiler             => undef,
            compset_file         => undef,
@@ -376,7 +377,7 @@ sub initialize()
            xml_mach             => undef,
            xml_compiler         => undef,
            xml_category         => undef,
-           mach_dir             => "$cimeroot/machines",
+           mach_dir             => "$ccsmroot/cime/machines",
            mach                 => undef,
            mpilib               => undef,
            nlcompareonly        => undef,
@@ -401,7 +402,7 @@ sub options
                "autosubmit=s"        => \$opts{'autosubmit'},
                "baselineroot=s"      => \$opts{'baselineroot'},
                "clean=s"             => \$opts{'clean'},
-               "cimeroot=s"          => \$opts{'cimeroot'},
+               "cesmroot=s"          => \$opts{'cesmroot'},
                "compare=s"           => \$opts{'compare'},
                "component=s"         => \$opts{'component'},
                "compiler=s"          => \$opts{'compiler'},
@@ -448,48 +449,40 @@ sub options
 
     } else {
 
+	my $ccsmroot = abs_path("$cfgdir/../../");
+
 	%xml_testlist_files  = (
-	    drv		=> "$cimeroot/driver_cpl/cimetest/testlist_drv.xml",
+	    allactive	=> abs_path( "$scriptsroot/Testing/Testlistxml/testlist_allactive.xml"),
+	    cam		=> abs_path( "$ccsmroot/components/cam/cimetest/testlist_cam.xml"), 
+	    cice	=> abs_path( "$ccsmroot/components/cice/cimetest/testlist_cice.xml"),
+	    cism	=> abs_path( "$ccsmroot/components/cism/cimetest/testlist_cism.xml"),
+	    clm		=> abs_path( "$ccsmroot/components/clm/cimetest/testlist_clm.xml"),
+	    pop		=> abs_path( "$ccsmroot/components/pop2/cimetest/testlist_pop.xml"),
+	    drv		=> abs_path( "$ccsmroot/cime/driver_cpl/cimetest/testlist_drv.xml"),
 	    );
 	
 	%xml_testmod_dirs  = (
-	    drv		=> "$cimeroot/driver_cpl/cimetest/testmods_dirs/",
+	    allactive	=> abs_path( "$scriptsroot/Testing/Testlistxml/testmods_dirs/"),
+	    cam		=> abs_path( "$ccsmroot/components/cam/cimetest/testmods_dirs/"),
+	    cice	=> abs_path( "$ccsmroot/components/cice/cimetest/testmods_dirs/"),
+	    cism	=> abs_path( "$ccsmroot/components/cism/cimetest/testmods_dirs/"),
+	    clm		=> abs_path( "$ccsmroot/components/clm/cimetest/testmods_dirs/"),
+	    rtm		=> abs_path( "$ccsmroot/components/clm/cimetest/testmods_dirs/"),
+	    pop		=> abs_path( "$ccsmroot/components/pop2/cimetest/testmods_dirs/"),
+	    drv		=> abs_path( "$ccsmroot/cime/driver_cpl/cimetest/testmods_dirs/"),
 	    );
-
-	if (-d "$cimeroot/../components") {
-	    my $d = IO::Dir->new("$cimeroot/../components");
-	    my @dirs = $d->read();
-	    $d->close();
-	    foreach my $comp ( @dirs ) {
-		my $dir = "$cimeroot/../components/$comp/cimetest";
-		if ( -d "$dir" ) {
-		    if ( -f "$dir/testlist_$comp.xml" ) {
-			$xml_testlist_files{$comp} = "$dir/testlist_$comp.xml";
-		    }
-		    if ( -d "$dir/testmods_dirs" ) {
-			$xml_testmod_dirs{$comp}   = "$dir/testmods_dirs";
-		    }
-		}
-	    }
-	}
-
-        # Always include the allactive testlist, which may not be able to be run.
-        my $comp = "allactive";
-        my $dir = "$scriptsroot/Testing/Testlistxml";
-        $xml_testlist_files{$comp} = "$dir/testlist_$comp.xml";
-        $xml_testmod_dirs{$comp}   = "$dir/testmods_dirs/";
 
 	my $component = $opts{'component'};
 	if ($component) {
-            my $found = 0;
-            my @comps = sort( keys(%xml_testlist_files) );
-            foreach my $comp ( @comps ) {
-               if ( $component eq $comp ) {
-                  $found = 1;
-               }
-            }
-	    if ( ! $found ) {
-		die "ERROR: component argument must match one of [@comps]\n";   
+	    if (($component ne 'allactive') &&
+		($component ne 'cam') &&
+		($component ne 'cice') &&
+		($component ne 'cism') &&		
+		($component ne 'clm') &&		
+		($component ne 'rtm') &&		
+		($component ne 'drv') &&		
+		($component ne 'pop')) {
+		die "ERROR: component argument must match one of [allactive | cam | cice | cism | clm | drv | rtm | pop ]\n";   
 	    }
 	    # now reset the xml_testlist_files and xml_testmod_dirs hash 
 	    my $tempfile = $xml_testlist_files{$component};
@@ -502,11 +495,9 @@ sub options
     # check if target xml file(s) exist
     foreach my $key (keys %xml_testlist_files) {
 	my $file = $xml_testlist_files{$key};
-	if( ! -e "$file" ) {
-	  warn "The specified xml test file $file was not found\n";
-	} else {
-          $xml_testlist_files{$key} = abs_path( $file );
-        }
+	if( ! -e $file ) {
+	  warn "The specified xml test file $file  was not found";
+	}
     }
 
 }
@@ -660,16 +651,7 @@ sub checkOptions
 # Read options from config_machines.xml
     my $machine = (defined $opts{mach}) ? $opts{mach} : $opts{xml_mach};
 
-    # If we're running namelist comparison tests, we want to set the machine to Yellowstone, 
-    # otherwise use the supplied machine value. 
-    if( defined $opts{'nlcompareonly'})
-	{
-        $cfg_ref->set_machine("$opts{mach_dir}/config_machines.xml", "yellowstone", 0);
-	}
-	else
-	{
-        $cfg_ref->set_machine("$opts{mach_dir}/config_machines.xml", $machine, 0);
-	}
+    $cfg_ref->set_machine("$opts{mach_dir}/config_machines.xml", $machine, 0);
 
     if(!defined $opts{'baselineroot'}) {
 	# TODO (mvertens, 2015-01-31) - check if the following change will be a problem
@@ -714,7 +696,7 @@ sub checkOptions
   }
 
   # verify that required directories exist. 
-  foreach my $dir ( qw / cimeroot baselineroot / )
+  foreach my $dir ( qw / cesmroot baselineroot / )
   {
     if( defined($opts{$dir}))
     {
@@ -805,68 +787,75 @@ sub ExpandXmlList
 
   my @actualtests;
 
-  my $parser = XML::LibXML->new( no_blanks => 1);
-  my $file = $testlistfile;
-  my $xml = $parser->parse_file($file);
+  my $xml_comp = XML::Lite->new( $testlistfile );
+  my $root = $xml_comp->root_element();
+  my $name = $root->get_name();
+  $name eq "testlist" or die
+      "file $testlistfile is not an xml testlist file\n";
 
-  my @compset_elems = $xml->findnodes(".//compset");
-  foreach my $compset_elem (@compset_elems) {
-      my $compset_val = $compset_elem->getAttribute('name');
 
-      my @grid_elems = $compset_elem->childNodes();
-      foreach my $grid_elem (@grid_elems) {
-	  my $grid_val  = $grid_elem->getAttribute('name');
+  my @compset_elems = $xml_comp->elements_by_name( "compset" );
+  while ( my $compset_elem = shift @compset_elems ) {
+      my $compset_name = $compset_elem->get_name();
+      my %compset_attr = $compset_elem->get_attributes();
+      my $compset_val  = $compset_attr{'name'};
 
-	  my @test_elems = $grid_elem->childNodes();
-	  foreach my $test_elem (@test_elems) {
-	      my $test_val  = $test_elem->getAttribute('name');
-	      if ($opts{'nlcompareonly'}) {
-		  # Replace the test type with SBN
-		  $test_val = "SBN";
-		  my $optidx = index( $test_val, "_" );
-		  if ( $optidx >= 0 ) {
-		      $test_val .= substr( $test_val, $optidx );
-		  }
-	      }
+      my @grid_elems = $compset_elem->get_children();
+      while ( my $grid_elem = shift @grid_elems ) {
+	      my $grid_name = $grid_elem->get_name();
+	      my %grid_attr = $grid_elem->get_attributes();
+	      my $grid_val  = $grid_attr{'name'};
 
-	      my @mach_elems = $test_elem->childNodes();
-	      foreach my $mach_elem (@mach_elems) {
-		  my $machine_val  = $mach_elem->textContent();
-		  my $testtype_val = $mach_elem->getAttribute('testtype');
-		  my $compiler_val = $mach_elem->getAttribute('compiler');
-		  my $testmods_val = $mach_elem->getAttribute('testmods');
-		  $testmods_val =~ s/\//-/g if(defined $testmods_val);
-		  my $testname = "$test_val" . ".$grid_val" . ".$compset_val." ;
+	  my @test_elems = $grid_elem->get_children();
+	  while ( my $test_elem = shift @test_elems ) {
+	      my $test_name = $test_elem->get_name();
+	      my %test_attr = $test_elem->get_attributes();
 
-		  if ($testcategory eq "all" or $testtype_val =~ /^${testcategory}$/) 
+	      my $test_val = $test_attr{'name'};
+
+	      my @mach_elems = $test_elem->get_children();
+	      while ( my $mach_elem = shift @mach_elems ) {
+		  my $mach_name = $mach_elem->get_name();
+		  if ($mach_name eq 'machine') 
 		  {
-		      if ($testmach eq "all" or $machine_val eq $testmach )
+		      my %mach_attr = $mach_elem->get_attributes();
+		      my $testtype_val = $mach_attr{'testtype'};
+		      my $compiler_val = $mach_attr{'compiler'};
+		      my $testmods_val = $mach_attr{'testmods'};
+		      $testmods_val =~ s/\//-/g if(defined $testmods_val);
+
+		      my $machine_val  = $mach_elem->get_text();
+		      my $testname = "$test_val" . ".$grid_val" . ".$compset_val." ;
+		      if ($testcategory eq "all" or $testtype_val =~ /^${testcategory}$/) 
 		      {
-			  if($testmach eq "all"){
-			      if ($opts{'mach'}){
-				  $testname .= $opts{'mach'};
-			      }else{
-				  $testname .= "yellowstone";
-			      }
-			  }else{
-			      $testname .= $machine_val;
-			  }
-			  if ($testcompiler eq "all" or $compiler_val =~ /^${testcompiler}$/)
+			  if ($testmach eq "all" or $machine_val eq $testmach )
 			  {
-			      if($testcompiler eq "all"){
-				  if ($opts{'compiler'}){
-				      $testname .="_".$opts{'compiler'};
+			      if($testmach eq "all"){
+				  if($opts{'mach'}){
+				      $testname .= $opts{'mach'};
 				  }else{
-				      $testname .="_intel";
+				      $testname .="yellowstone";
 				  }
-			      } else{
-				  $testname .= "_".$compiler_val;
+			      }else{
+				  $testname .= $machine_val;
 			      }
-			      if ($testmods_val) {
-				  $testname = "$testname" . ".$testmods_val";
+			      if($testcompiler eq "all" or $compiler_val =~ /^${testcompiler}$/)
+			      {
+				  if($testcompiler eq "all"){
+				      if($opts{'compiler'}){
+					  $testname .="_".$opts{'compiler'};
+				      }else{
+					  $testname .="_intel";
+				      }
+				  }else{
+				      $testname .= "_".$compiler_val;
+				  }
+				  if ($testmods_val) {
+				      $testname = "$testname" . ".$testmods_val";
+				  }
+				  push (@actualtests, $testname);
+				  &Debug("testname is $testname \n");
 			      }
-			      push (@actualtests, $testname);
-			      &Debug("testname is $testname \n");
 			  }
 		      }
 		  }
@@ -874,6 +863,7 @@ sub ExpandXmlList
 	  }
       }
   }
+  
     
 
   # check for duplicates in the test list...
@@ -1192,20 +1182,37 @@ sub runCreateNewcase
      my $testmods = $test{'testmods'};
      $testmods =~ s/-/\//g;
      my $xml_testmod_dir;
-     if ($testmods =~ /^([^\/]+)\//) {
-         my $comp = $1;
-         if ( exists($xml_testmod_dirs{$comp}) ) {
-	    $xml_testmod_dir = $xml_testmod_dirs{$comp};
-	    $testmods = "$xml_testmod_dir/".$testmods;
-	    $cn_args .= " -user_mods_dir $testmods";
-         } else {
-            print "Can NOT find testmod directory for $comp\n";
-	    die;
-         }
+     if ($testmods =~ /^cam\//) {
+	 $xml_testmod_dir = $xml_testmod_dirs{'cam'};
+     }
+     if ($testmods =~ /^allactive\//) {
+	 $xml_testmod_dir = $xml_testmod_dirs{'allactive'};
+     }
+     if ($testmods =~ /^cice\//) {
+	 $xml_testmod_dir = $xml_testmod_dirs{'cice'};
+     }
+     if ($testmods =~ /^clm\//) {
+	 $xml_testmod_dir = $xml_testmod_dirs{'clm'};
+     }
+     if ($testmods =~ /^rtm\//) {
+	 $xml_testmod_dir = $xml_testmod_dirs{'rtm'};
+     }
+     if ($testmods =~ /^drv\//) {
+	 $xml_testmod_dir = $xml_testmod_dirs{'drv'};
+     }
+     if ($testmods =~ /^cism\//) {
+	 $xml_testmod_dir = $xml_testmod_dirs{'cism'};
+     }
+     if ($testmods =~ /^pop\//) {
+	 $xml_testmod_dir = $xml_testmod_dirs{'pop'};
+     }
+     if (defined $xml_testmod_dir) {
+	 $testmods = "$xml_testmod_dir/".$testmods;
+	 $cn_args .= " -user_mods_dir $testmods";
      }
   }
 
-  my $createnewcase = "$opts{'cimeroot'}/scripts/create_newcase $cn_args";
+  my $createnewcase = "$opts{'cesmroot'}/cime/scripts/create_newcase $cn_args";
   if($opts{'dryrun'}){
       print "$createnewcase\n";
       return;
@@ -1322,7 +1329,7 @@ sub writeEnvTestXML
   {
     $cfg_ref->set('COMPARE_BASELINE', "FALSE");
   }
-  $cfg_ref->write_file("$caseroot/env_test.xml", "xml", $opts{'cimeroot'} );
+  $cfg_ref->write_file("$caseroot/env_test.xml", "xml", $opts{'cesmroot'} );
   
 }
 
@@ -1347,20 +1354,21 @@ sub testcaseSetup
   {
       $xmlvars{$attr} = SetupTools::expand_xml_var($xmlvars{$attr}, \%xmlvars);
   }
+
   chdir ($cwd);
 
   print "Setting up tools for test case..\n";
 
-  my $cimeroot = $xmlvars{'CIMEROOT'};
+  my $ccsmroot = $xmlvars{'CCSMROOT'};
   my $testcase = $xmlvars{'TESTCASE'};
   my $case     = $xmlvars{'CASE'};
 
-  if (-e "$cimeroot/scripts/Testing/Testcases/${testcase}_build.csh") {
-      $sysmod = "cp -f $cimeroot/scripts/Testing/Testcases/${testcase}_build.csh ./${case}.test_build";
+  if (-e "${ccsmroot}/cime/scripts/Testing/Testcases/${testcase}_build.csh") {
+      $sysmod = "cp -f ${ccsmroot}/cime/scripts/Testing/Testcases/${testcase}_build.csh ./${case}.test_build";
       &Debug("sysmod is $sysmod");
       system($sysmod) == 0 or die "$sysmod failed: $?\n";
   } else {
-      $sysmod = "cp -f $cimeroot/scripts/Testing/Testcases/tests_build.csh ./${case}.test_build";
+      $sysmod = "cp -f ${ccsmroot}/cime/scripts/Testing/Testcases/tests_build.csh ./${case}.test_build";
       &Debug("sysmod is $sysmod");
       system($sysmod) == 0 or die "$sysmod failed: $?\n";
   }
@@ -1508,7 +1516,7 @@ sub writeTestListXML
 <testlist>
   <testroot>$opts{'testroot'}</testroot>
   <scriptsroot>$scriptsroot</scriptsroot>
-  <cimeroot>$opts{'cimeroot'}</cimeroot>
+  <ccsmroot>$opts{'cesmroot'}</ccsmroot>
   <baselinetag>$baselinetag</baselinetag>
   <compiler>$compiler</compiler>
   <nobatch>$opts{'nobatch'}</nobatch>
@@ -1613,7 +1621,8 @@ sub namelistCompare
     }
 
     chdir($testpath) or die "couldn't change directory to $testpath\n";
-    my $cprnml = "$testpath/Tools/compare_namelists.pl";
+    my $cprnml = "$testpath/Tools/compare_namelists";
+    my $altcpr = "$testpath/Tools/simple_compare";
 
     my $configtemplate = "$scriptsroot/Tools/config_definition.xml";
     &Debug("config template is $configtemplate\n");
@@ -1666,8 +1675,12 @@ sub namelistCompare
 	       if(! -e "$basecmpdir/$nml"){
 		   print "WARNING: no baseline file exists for $nml\n";
 	       }else{
-		   my $compare_command = "$cprnml $buildconfpath/$nml $basecmpdir/$nml $test";
+		   my $compare_command = "$cprnml -c $test $buildconfpath/$nml $basecmpdir/$nml $test 2>&1";
 		   my $output = `$compare_command`;
+                   if ($output =~ /does not appear to be a namelist file/) {
+                       $compare_command = "$altcpr -c $test $basecmpdir/$nml $buildconfpath/$nml 2>&1";
+                       $output = `$compare_command`;
+                   }
 		   $nlcompoutput .= $output;
 	       }
 	   }
@@ -1682,8 +1695,12 @@ sub namelistCompare
 	       if(! -e "$basecase/$nml"){
 		   print "WARNING: no baseline file exists for $nml\n";
 	       }else{
-		   my $compare_command = "$cprnml $testpath/$nml $basecase/$nml $test";
+		   my $compare_command = "$cprnml -c $test $testpath/$nml $basecase/$nml 2>&1";
 		   my $output = `$compare_command`;
+                   if ($output =~ /does not appear to be a namelist file/) {
+                       $compare_command = "$altcpr -c $test $basecmpdir/$nml $testpath/$nml 2>&1";
+                       $output = `$compare_command`;
+                   }
 		   $nlcompoutput .= $output;
 	       }
 	   }
@@ -1745,14 +1762,13 @@ sub namelistCompare
     if ($opts{'generate'}) {
 	my $genpath = "$baseroot/".$opts{'generate'}."/$basename";
 	if(-d $genpath){
-	    print "WARNING: Baseline directory is $genpath and already exists - WILL NOT OVERWRITE \n.";
+	    warn "Baseline directory $genpath already exists";
 	}else{
 	    umask 0000;
 	    mkpath $genpath, 1, 0775;
-	    system("cp -r $buildconfpath $genpath"); 
-	    system("cp $buildconfpath/../user_nl* $genpath") ;
-	    print "Couldnt create Baseline directory $genpath" unless -d "$genpath/CaseDocs"; 
-	}
+        }
+        system("cp -rf $buildconfpath $genpath");
+        system("cp -f $buildconfpath/../user_nl* $genpath") ;
     }
 }
 
@@ -1808,7 +1824,7 @@ sub main
     options();
 
     my $config_def_file = "config_definition.xml";
-    my $cfg_ref = ConfigCase->new("$opts{cimeroot}/scripts/Tools/$config_def_file");
+    my $cfg_ref = ConfigCase->new("$opts{cesmroot}/cime/scripts/Tools/$config_def_file");
 
     checkOptions($cfg_ref);
 

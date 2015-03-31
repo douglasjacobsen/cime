@@ -181,8 +181,8 @@ EOF
 # The root directory for the input data files must be specified.
 
 #The root directory to cesm utils Tools
-my $cimeroot   = abs_path( "${SCRIPTSROOT}/../" );
-my $perl5lib   = "$cimeroot/utils/perl5lib";
+my $cesmroot   = abs_path( "${SCRIPTSROOT}/../../" );
+my $perl5lib   = "$cesmroot/cime/utils/perl5lib";
 
 # The XML::Lite module is required to parse the XML files.
 (-f "$perl5lib/XML/Lite.pm")  or  die <<"EOF";
@@ -381,9 +381,7 @@ if ( $GRID eq "CLM_USRDAT" && $CLM_USRDAT_NAME =~ /^(UNSET|)$/ ) {
 EOF
 }
 
-(-d $DIN_LOC_ROOT)  or  die <<"EOF";
-** $ProgName - CESM inputdata root is not a directory: \"$DIN_LOC_ROOT\" **
-EOF
+(-d $DIN_LOC_ROOT)  or mkdir $DIN_LOC_ROOT;
 if ($print>=2) { print "CESM inputdata root directory: $DIN_LOC_ROOT$eol"; }
 
 if ($opts{'test'}) {

@@ -49,3 +49,4 @@ class Component(EntryID):
         for v in compsets.iteritems():
             label, definition = v
             logger.info("   %20s : %s" %(label, definition))
+

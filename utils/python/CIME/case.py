@@ -38,7 +38,9 @@ class Case(object):
         self._env_entryid_files.append(EnvCase(case_root))
         self._env_entryid_files.append(EnvBatch(case_root))
         if(os.path.isfile(os.path.join(case_root,"env_test.xml"))):
-               self._env_entryid_files.append(EnvTest(case_root))
+            # system_test needs to reference the test object directly so create an explicit reference here
+               self._test = EnvTest(case_root)
+               self._env_entryid_files.append(self._test)
         self._env_generic_files.append(EnvMachSpecific(case_root))
         self._env_generic_files.append(EnvArchive(case_root))
 

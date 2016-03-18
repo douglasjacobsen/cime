@@ -28,7 +28,7 @@ class EnvBatch(EnvBase):
             for node in nodes:
                 vnode = self.get_optional_node("entry", {"id":item}, root=node)
                 if vnode is not None:
-                    val = self._set_value(vnode, item, value)
+                    val = self._set_value(vnode, item, value, resolved)
 
         return val
 

@@ -376,17 +376,17 @@ class SystemTestSuite(object):
             create_newcase_cmd += " -user_mods_dir %s" % test_mod_file
 
         logger.debug("Calling create_newcase: "+create_newcase_cmd)
-        rc = self._shell_cmd_for_phase(test, create_newcase_cmd, CREATE_NEWCASE_PHASE)
-        if rc:
-            self.add_test_instructions_to_case(test_dir,test_case)
-        return rc
+        return self._shell_cmd_for_phase(test, create_newcase_cmd, CREATE_NEWCASE_PHASE)
 
     ###########################################################################
     def _xml_phase(self, test):
     ###########################################################################
 
         test_case = CIME.utils.parse_test_name(test)[0]
-        envtest = EnvTest(self._get_test_dir(test))
+        test_dir = self._get_test_dir(test)
+
+        envtest = EnvTest(test_dir)
+
 
         files = Files()
         drv_config_file = files.get_value("CONFIG_DRV_FILE")
@@ -416,6 +416,12 @@ class SystemTestSuite(object):
         envtest.set_value("GENERATE_BASELINE", self._generate)
         envtest.set_value("COMPARE_BASELINE", self._compare)
         envtest.set_value("CCSM_CPRNC", self._machobj.get_value("CCSM_CPRNC", resolved=False))
+        """
+        Add the test instructions from config_test to env_test in the case
+        """
+        config_test = Tests()
+        testnode = config_test.get_test_node(test_case)
+        envtest.add_test(testnode)
         envtest.write()
         return True
 
@@ -717,16 +723,6 @@ class SystemTestSuite(object):
 
         except Exception as e:
             logger.warning("FAILED to set up cs files: %s" % str(e))
-
-
-    def add_test_instructions_to_case(self, caseroot, testname):
-        """
-        Add the test instructions from config_test to env_test in the case
-        """
-        config_test = Tests()
-        env_test = EnvTest(caseroot)
-        testnode = config_test.get_test_node(testname)
-        env_test.add_test(testnode)
 
     ###########################################################################
     def system_test_suite(self):

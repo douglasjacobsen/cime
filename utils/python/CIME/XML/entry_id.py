@@ -57,12 +57,18 @@ class EntryID(GenericXML):
         else:
             return self._get_type_info(node)
 
-    def _set_value(self, node, vid, value, subgroup=None):
-        type_str = self._get_type_info(node)
-        node.set("value", convert_to_string(value, type_str, vid))
+    def _set_value(self, node, vid, value, subgroup=None, resolved=True):
+        if not resolved and type(value) is str:
+            node.set("value", value)
+        elif type(value) is str:
+            node.set("value", value)
+        else:
+            type_str = self._get_type_info(node)
+            node.set("value", convert_to_string(value, vid=vid))
+
         return value
 
-    def set_value(self, vid, value, subgroup=None):
+    def set_value(self, vid, value, subgroup=None, resolved=True):
         """
         Set the value of an entry-id field to value
         Returns the value or None if not found
@@ -70,11 +76,11 @@ class EntryID(GenericXML):
         """
         node = self.get_optional_node("entry", {"id":vid})
         if node is not None:
-            return self._set_value(node, vid, value, subgroup)
+            return self._set_value(node, vid, value, subgroup, resolved)
         else:
             return None
 
-    def get_value(self, vid, attribute={}, resolved=True, subgroup=None):
+    def get_value(self, vid, attribute={}, resolved=True, subgroup=None, settype=True):
         """
         get a value for entry with id attribute vid.
         or from the values field if the attribute argument is provided
@@ -104,7 +110,9 @@ class EntryID(GenericXML):
 
         # Return value as right type
         type_str = self._get_type_info(node)
-        return convert_to_type(val, type_str, vid)
+        if settype:
+            return convert_to_type(val, type_str, vid)
+        return val
 
     def get_values(self, vid, att, resolved=True):
         """
@@ -183,9 +191,9 @@ class EntryID(GenericXML):
         f1nodes = self.get_nodes("entry")
         for node in f1nodes:
             vid = node.attrib["id"]
-            f2val = other.get_value(vid, resolved=False)
+            f2val = other.get_value(vid, resolved=False, settype=False)
             if f2val is not None:
-                f1val = self.get_value(vid, resolved=False)
+                f1val = self.get_value(vid, resolved=False, settype=False)
                 if f2val != f1val:
                     xmldiffs[vid] = [f1val, f2val]
 

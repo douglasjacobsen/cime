@@ -94,9 +94,9 @@ class Case(object):
 
         return item
 
-    def set_value(self, item, value, subgroup=None):
+    def set_value(self, item, value, subgroup=None, resolved=True):
         for env_file in self._env_entryid_files:
-            result = env_file.set_value(item, value, subgroup)
+            result = env_file.set_value(item, value, subgroup,resolved)
             if (result is not None):
                 self._env_files_that_need_rewrite.add(env_file)
                 return result

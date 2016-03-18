@@ -89,7 +89,8 @@ def xmlchange(caseroot, listofsettings=None, xmlfile=None, xmlid=None, xmlval=No
             if(append is True):
                 value = case.get_value(xmlid, resolved=False, subgroup=subgroup)
                 xmlval = "%s %s" %(xmlval, value)
-            case.set_value(xmlid, convert_to_type(xmlval, type_str, xmlid), subgroup)
+            value = convert_to_type(xmlval, type_str, xmlid,ok_to_fail=True)
+            case.set_value(xmlid, value, subgroup, resolved=False)
     else:
         if(append is True):
             value = case.get_value(xmlid, resolved=False, subgroup=subgroup)

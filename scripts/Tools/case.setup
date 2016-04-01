@@ -242,7 +242,7 @@ if (! $clean ) {
 	my $CCSM_TCOST = $xmlvars{'CCSM_TCOST'};
 	my $CCSM_MCOST = $xmlvars{'CCSM_MCOST'};
 	my $estcost = $CCSM_CCOST + $CCSM_GCOST + $CCSM_MCOST + $CCSM_TCOST + $pcost + $dcost + $lcost;
-
+	print "HERE pestot is $pestot\n";
 	my $sysmod = "./xmlchange --noecho --file env_mach_pes.xml --id TOTALPES --val $pestot";
 	system($sysmod) == 0 or $logger->logdie("ERROR case.setup: $sysmod failed: $?");
 
@@ -251,6 +251,7 @@ if (! $clean ) {
 
 	$sysmod = "./xmlchange --noecho --file env_mach_pes.xml --id CCSM_ESTCOST --val $estcost";
 	system($sysmod) == 0 or $logger->logdie("ERROR case.setup: $sysmod failed: $?");
+
 
 	#--------------------------------------------------------------
 	# create batch file
@@ -350,6 +351,7 @@ if (! $clean ) {
     my $sdate = `date +"%Y-%m-%d %H:%M:%S"`;
     print $fh "case.setup $sdate $eol";
     $fh->close();
+    system("./xmlquery TOTALPES");
 
 }
 
